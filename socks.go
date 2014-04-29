@@ -13,13 +13,13 @@ import (
 	"time"
 )
 
-const Socks5Connect byte			= 0x01
-const Socks5IPv4Addr byte			= 0x01
-const Socks5DomainName byte			= 0x03
-const Socks5IPv6Addr byte			= 0x04
-const Socks5NoAuthentication byte	= 0x00
-const Socks5RequestGranted byte		= 0x00
-const Socks5Version byte			= 0x05
+const socks5Connect byte			= 0x01
+const socks5IPv4Addr byte			= 0x01
+const socks5DomainName byte			= 0x03
+const socks5IPv6Addr byte			= 0x04
+const socks5NoAuthentication byte	= 0x00
+const socks5RequestGranted byte		= 0x00
+const socks5Version byte			= 0x05
 
 
 // DialSocks5Timeout dials to targetAddr through the specified proxy.  The
@@ -42,7 +42,7 @@ func DialSocks5Timeout(proxy, targetAddr string, timeout time.Duration) (conn ne
 	}
 
 	// initial greeting; only offer NoAuthentication
-	_, err = conn.Write([]byte{Socks5Version, 1, Socks5NoAuthentication})
+	_, err = conn.Write([]byte{socks5Version, 1, socks5NoAuthentication})
 	if err != nil {
 		return nil, err
 	}
@@ -52,11 +52,11 @@ func DialSocks5Timeout(proxy, targetAddr string, timeout time.Duration) (conn ne
 	if err != nil {
 		return nil, err
 	}
-	if resp[0] != Socks5Version {
+	if resp[0] != socks5Version {
 		return nil, errors.New("SOCKS proxy server does not support SOCKS5")
 	}
-	if resp[1] != Socks5NoAuthentication {
-		return nil, fmt.Errorf("SOCKS authentication method negotiation failed; expected %x, got %x", Socks5NoAuthentication, resp[1])
+	if resp[1] != socks5NoAuthentication {
+		return nil, fmt.Errorf("SOCKS authentication method negotiation failed; expected %x, got %x", socks5NoAuthentication, resp[1])
 	}
 
 	// connection request
@@ -68,8 +68,8 @@ func DialSocks5Timeout(proxy, targetAddr string, timeout time.Duration) (conn ne
 	if len(hostBytes) > 0xFF {
 		return nil, fmt.Errorf("hostname %s over maximum length %d", host, 0xFF)
 	}
-	req := []byte{Socks5Version, Socks5Connect, 0x00,
-				  Socks5DomainName, byte(len(hostBytes))}
+	req := []byte{socks5Version, socks5Connect, 0x00,
+				  socks5DomainName, byte(len(hostBytes))}
 	req = append(req, hostBytes...)
 	req = append(req, htons(port)...)
 	_, err = conn.Write(req)
@@ -82,19 +82,19 @@ func DialSocks5Timeout(proxy, targetAddr string, timeout time.Duration) (conn ne
 	if err != nil {
 		return nil, err
 	}
-	if resp[0] != Socks5Version {
+	if resp[0] != socks5Version {
 		return nil, fmt.Errorf("SOCKS version %x is not 5", resp[0])
 	}
-	if resp[1] != Socks5RequestGranted {
+	if resp[1] != socks5RequestGranted {
 		return nil, fmt.Errorf("could not complete SOCKS5 connection: %x", resp[1])
 	}
 	if resp[2] != 0x00 {
 		return nil, fmt.Errorf("SOCKS5: reserved byte %x is not 0x00", resp[2])
 	}
 	switch resp[3] {
-		case Socks5IPv4Addr:
+		case socks5IPv4Addr:
 			_, err = io.ReadFull(conn, resp[:4+2])
-		case Socks5IPv6Addr:
+		case socks5IPv6Addr:
 			_, err = io.ReadFull(conn, resp[:16+2])
 		default:
 			return nil, fmt.Errorf("invalid address type %x in CONNECT response", resp[3])
